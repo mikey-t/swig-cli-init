@@ -82,7 +82,10 @@ export class SwigInitializer {
 
   installDependencies = async () => {
     log(`- installing dependencies (if pnpm installed and no package-lock.json, pnpm will be used instead of npm)`)
-    const npmCommand = (await which('pnpm')).location ? 'pnpm' : 'npm'
+    const pnpmInstalled = (await which('pnpm')).location !== undefined
+    const packageLockPath = path.resolve(this.workingDir, 'package-lock.json')
+    const packageLockExists = fs.existsSync(packageLockPath)
+    const npmCommand = pnpmInstalled && !packageLockExists ? 'pnpm' : 'npm'
     await spawnAsync(npmCommand, ['i', '-D', 'swig-cli', 'swig-cli-modules', 'tsx', 'typescript', '@mikeyt23/node-cli-utils', '@types/node@20'], { cwd: this.workingDir })
   }
 

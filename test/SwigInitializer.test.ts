@@ -1,5 +1,5 @@
 import { WhichResult, emptyDirectory, simpleSpawnAsync, which, withRetryAsync } from '@mikeyt23/node-cli-utils'
-import { assertErrorMessageEquals, only, tempDir } from '@mikeyt23/node-cli-utils/testUtils'
+import { assertErrorMessageEquals, tempDir } from '@mikeyt23/node-cli-utils/testUtils'
 import assert from 'node:assert'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -46,8 +46,8 @@ describe('ensurePreRequisites', () => {
   })
 })
 
-describe('full happy path test from empty directory', only, () => {
-  it('works', only, async () => {
+describe('full happy path test from empty directory', () => {
+  it('works', async () => {
     const happyPathDir = path.resolve(tempDir, 'happy-path')
     await deleteHappyPathWithRetry(happyPathDir, '[before test]')
 
