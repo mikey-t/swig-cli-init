@@ -28,6 +28,14 @@ export async function test() {
   }
 }
 
+export const publish = series(
+  cleanDist,
+  lint,
+  doBuild,
+  test,
+  npmPublish
+)
+
 async function doBuild() {
   await spawnAsync('node', [tscPath, '--p', 'tsconfig.build.json'])
 }
@@ -38,4 +46,8 @@ async function doWatch() {
 
 function argPassed(argName: string) {
   return process.argv.slice(3).includes(argName)
+}
+
+async function npmPublish() {
+  await spawnAsync('npm', ['publish', '--registry=https://registry.npmjs.org/'])
 }
