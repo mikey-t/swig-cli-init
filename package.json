@@ -1,6 +1,6 @@
 {
   "name": "swig-cli-init",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": "Mike Thompson",
   "license": "MIT",
   "description": "Initialize a project to use swig-cli",
@@ -19,16 +19,16 @@
   ],
   "type": "module",
   "dependencies": {
-    "@mikeyt23/node-cli-utils": "^2.0.33"
+    "@mikeyt23/node-cli-utils": "^2.0.35"
   },
   "devDependencies": {
-    "@types/node": "20",
-    "@typescript-eslint/eslint-plugin": "^7.0.2",
-    "@typescript-eslint/parser": "^7.0.2",
+    "@types/node": "^20.12.2",
+    "@typescript-eslint/eslint-plugin": "^7.4.0",
+    "@typescript-eslint/parser": "^7.4.0",
     "eslint": "^8.57.0",
-    "swig-cli": "^0.0.16",
+    "swig-cli": "^1.0.1",
     "tsx": "^4.7.1",
-    "typescript": "^5.3.3"
+    "typescript": "^5.4.3"
   },
   "volta": {
     "node": "20.11.1"

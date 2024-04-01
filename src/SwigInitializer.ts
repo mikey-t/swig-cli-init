@@ -1,4 +1,4 @@
-import { Emoji, log, spawnAsync, which } from '@mikeyt23/node-cli-utils'
+import { Emoji, log, simpleSpawnAsync, spawnAsync, which } from '@mikeyt23/node-cli-utils'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
@@ -65,7 +65,7 @@ export class SwigInitializer {
     if (!volta) {
       return
     }
-    log(`- using volta to ping node version to ${SwigInitializer.nodeVersionPin}`)
+    log(`- using volta to pin node version to ${SwigInitializer.nodeVersionPin}`)
     await spawnAsync('volta', ['pin', `node@${SwigInitializer.nodeVersionPin}`], { cwd: this.workingDir })
   }
 
@@ -81,12 +81,17 @@ export class SwigInitializer {
   }
 
   installDependencies = async () => {
-    log(`- installing dependencies (if pnpm installed and no package-lock.json, pnpm will be used instead of npm)`)
-    const pnpmInstalled = (await which('pnpm')).location !== undefined
+    log(`- installing dependencies (uses pnpm instead of npm if it's installed and no package-lock.json exists)`)
+    const pnpmInstalled = await this.isPnpmInstalledGlobally()
+    if (pnpmInstalled) {
+      log('- pnpm found - using pnpm instead of npm')
+    } else {
+      log('- pnpm not found - using npm')
+    }
     const packageLockPath = path.resolve(this.workingDir, 'package-lock.json')
     const packageLockExists = fs.existsSync(packageLockPath)
     const npmCommand = pnpmInstalled && !packageLockExists ? 'pnpm' : 'npm'
-    await spawnAsync(npmCommand, ['i', '-D', 'swig-cli', 'swig-cli-modules', 'tsx', 'typescript', '@mikeyt23/node-cli-utils', '@types/node@20'], { cwd: this.workingDir })
+    await spawnAsync(npmCommand, ['i', '-D', 'swig-cli@latest', 'swig-cli-modules@latest', 'tsx@latest', 'typescript@latest', '@mikeyt23/node-cli-utils@latest', '@types/node@20'], { cwd: this.workingDir })
   }
 
   ensureSwigfile = async () => {
@@ -105,6 +110,12 @@ export class SwigInitializer {
     log(`- Install swig-cli globally: npm i -g swig-cli`)
     log(`- Get a list of available swig tasks: swig`)
     log(`- Run the "hello" task (only generated if swigfile.ts did not already exist): swig hello`)
+  }
+
+  private isPnpmInstalledGlobally = async () => {
+    log('- checking if pnpm is installed globally')
+    const result = await simpleSpawnAsync('pnpm', ['--version'], { throwOnNonZero: false })
+    return result.code === 0 && result.stdout.trim() !== ''
   }
 }
 
