@@ -1,6 +1,6 @@
 {
   "name": "swig-cli-init",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "Mike Thompson",
   "license": "MIT",
   "description": "Initialize a project to use swig-cli",

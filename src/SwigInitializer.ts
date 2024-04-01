@@ -51,7 +51,12 @@ export class SwigInitializer {
   }
 
   npmInit = async () => {
-    log('- running npm init')
+    const packageJsonPath = path.join(this.workingDir, 'package.json')
+    if (fs.existsSync(packageJsonPath)) {
+      log(`- skipping "npm init -y" step because package.json already exists`)
+      return
+    }
+    log('- running "npm init -y"')
     await spawnAsync('npm', ['init', '-y'], { cwd: this.workingDir })
   }
 
