@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@mikeyt23/node-cli-utils':
+        specifier: ^2.0.36
+        version: 2.0.36
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.4
@@ -14,9 +18,6 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.0.2)
-      '@mikeyt23/node-cli-utils':
-        specifier: ^2.0.36
-        version: 2.0.36
       '@types/node':
         specifier: '24'
         version: 24.11.0

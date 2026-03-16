@@ -1,6 +1,6 @@
 {
   "name": "swig-cli-init",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "author": "Mike Thompson",
   "repository": {
     "type": "git",
@@ -34,10 +34,12 @@
       "version": "24.14.0"
     }
   },
+  "dependencies": {
+    "@mikeyt23/node-cli-utils": "^2.0.36"
+  },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.4",
     "@eslint/js": "^10.0.1",
-    "@mikeyt23/node-cli-utils": "^2.0.36",
     "@types/node": "24",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
     "@typescript-eslint/parser": "^8.56.1",
