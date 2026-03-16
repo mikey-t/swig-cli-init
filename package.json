@@ -7,7 +7,7 @@
     "url": "git+ssh://git@github.com/mikey-t/swig-cli-init.git"
   },
   "license": "MIT",
-  "description": "Initialize a project to use swig-cli",
+  "description": "Script to automate swig-cli setup",
   "keywords": [
     "swig",
     "cli",
