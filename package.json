@@ -1,14 +1,19 @@
 {
   "name": "swig-cli-init",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "author": "Mike Thompson",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:mikey-t/swig-cli-init.git"
+  },
   "license": "MIT",
   "description": "Initialize a project to use swig-cli",
   "keywords": [
     "swig",
     "cli",
     "swig-cli",
-    "init"
+    "init",
+    "scaffold"
   ],
   "main": "dist/src/index.js",
   "bin": {
@@ -18,19 +23,34 @@
     "dist/"
   ],
   "type": "module",
-  "dependencies": {
-    "@mikeyt23/node-cli-utils": "^2.0.35"
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^10.30.3",
+      "onFail": "ignore"
+    },
+    "runtime": {
+      "name": "node",
+      "version": "24.14.0"
+    }
   },
   "devDependencies": {
-    "@types/node": "^20.12.2",
-    "@typescript-eslint/eslint-plugin": "^7.4.0",
-    "@typescript-eslint/parser": "^7.4.0",
-    "eslint": "^8.57.0",
-    "swig-cli": "^1.0.1",
-    "tsx": "^4.7.1",
-    "typescript": "^5.4.3"
+    "@eslint/eslintrc": "^3.3.4",
+    "@eslint/js": "^10.0.1",
+    "@mikeyt23/node-cli-utils": "^2.0.36",
+    "@types/node": "24",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^10.0.2",
+    "globals": "^17.4.0",
+    "swig-cli": "^1.0.5",
+    "swig-cli-modules": "^0.3.3",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   },
-  "volta": {
-    "node": "20.11.1"
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

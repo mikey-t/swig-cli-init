@@ -1,52 +1,47 @@
-import { Emoji, log, simpleSpawnAsync, spawnAsync, which } from '@mikeyt23/node-cli-utils'
-import fs from 'node:fs'
+import { Emoji, log, simpleSpawnAsync, spawnAsync } from '@mikeyt23/node-cli-utils'
+import fs, { existsSync } from 'node:fs'
 import fsp from 'node:fs/promises'
-import path from 'node:path'
+import path, { dirname } from 'node:path'
 
 export interface SwigInitializerDependencies {
-  whichFn: typeof which
   getNodeMajorVersionFn: typeof getNodeMajorVersion
   workingDir: string
 }
 
 export class SwigInitializer {
   static readonly minNodeVersion = 20
-  static readonly nodeVersionPin = 20
-  private readonly whichFn: typeof which
   private readonly getNodeMajorVersionFn: typeof getNodeMajorVersion
   private readonly workingDir: string
+  private npmCliJsPath: string | undefined = undefined
+  private nodeMajorVersion: number | undefined = undefined
 
   constructor(dependencies?: Partial<SwigInitializerDependencies>) {
-    this.whichFn = dependencies?.whichFn ?? which
     this.getNodeMajorVersionFn = dependencies?.getNodeMajorVersionFn ?? getNodeMajorVersion
     this.workingDir = dependencies?.workingDir ?? process.cwd()
   }
 
   run = async () => {
-    log(`- starting initialization of swig project in directory: ${this.workingDir}`)
+    log(`- starting swig initialization in directory: ${this.workingDir}`)
     await this.ensurePreRequisites()
     await this.npmInit()
     await this.npmSetTypeModule()
-    await this.voltaPinNodeVersion()
     await this.ensureTsconfig()
-    await this.installDependencies()
+    await this.installDevelopmentDependencies()
     await this.ensureSwigfile()
     this.printInstructions()
   }
 
   ensurePreRequisites = async () => {
     log('- ensuring pre-requisites')
-    const nodeVersion = this.getNodeMajorVersionFn()
-    if (!(await this.whichFn('npm')).location) {
-      throw new Error('Npm is required but was not detected')
+    this.nodeMajorVersion = this.getNodeMajorVersionFn()
+    this.npmCliJsPath = getNpmCliJsPath()
+
+    if (!this.npmCliJsPath) {
+      throw new Error('npm is required but was not detected')
     }
 
-    if (nodeVersion >= SwigInitializer.minNodeVersion) {
-      return
-    }
-
-    if (!(await this.whichFn('volta')).location) {
-      throw new Error(`Node.js >= ${SwigInitializer.minNodeVersion} is required (OR Volta must be detected)`)
+    if (this.nodeMajorVersion < SwigInitializer.minNodeVersion) {
+      throw new Error(`Node.js >= ${SwigInitializer.minNodeVersion} is required`)
     }
   }
 
@@ -57,21 +52,23 @@ export class SwigInitializer {
       return
     }
     log('- running "npm init -y"')
-    await spawnAsync('npm', ['init', '-y'], { cwd: this.workingDir })
+    await this.spawnNpm(['init', '-y'])
   }
 
   npmSetTypeModule = async () => {
     log('- setting package.json type to module with command: npm pkg set type="module"')
-    await spawnAsync('npm', ['pkg', 'set', 'type=module'], { cwd: this.workingDir })
+    await this.spawnNpm(['pkg', 'set', 'type=module'])
   }
 
-  voltaPinNodeVersion = async () => {
-    const volta = (await (which('volta'))).location
-    if (!volta) {
-      return
+  npmSetPackageJsonPnpmEsbuildAllow = async () => {
+    log(`- adding package.json entry to allow esbuild install script when using pnpm (dependency of tsx)`)
+    const getResult = await spawnAsync(process.execPath, [this.npmCliJsPath!, ...['pkg', 'get', 'pnpm.onlyBuiltDependencies']], { cwd: this.workingDir, stdio: 'pipe' })
+    const config = JSON.parse(getResult.stdout)
+    if ((Array.isArray(config) && config.includes('esbuild')) || config === 'esbuild') {
+      log(`- package.json pnpm.onlyBuiltDependencies detected to already exist and already has needed 'esbuild' entry`)
+    } else {
+      await this.spawnNpm(['pkg', 'set', 'pnpm.onlyBuiltDependencies[]=esbuild'])
     }
-    log(`- using volta to pin node version to ${SwigInitializer.nodeVersionPin}`)
-    await spawnAsync('volta', ['pin', `node@${SwigInitializer.nodeVersionPin}`], { cwd: this.workingDir })
   }
 
   ensureTsconfig = async () => {
@@ -85,18 +82,36 @@ export class SwigInitializer {
     log('- tsconfig.json written')
   }
 
-  installDependencies = async () => {
-    log(`- installing dependencies (uses pnpm instead of npm if it's installed and no package-lock.json exists)`)
+  installDevelopmentDependencies = async () => {
+    log(`- installing development dependencies (uses pnpm instead of npm if it's installed and no package-lock.json exists)`)
+    log('- checking if pnpm is installed globally')
+    const npmPackageLockFilename = 'package-lock.json'
     const pnpmInstalled = await this.isPnpmInstalledGlobally()
-    if (pnpmInstalled) {
-      log('- pnpm found - using pnpm instead of npm')
+    const npmPackageLockExists = fs.existsSync(path.resolve(this.workingDir, npmPackageLockFilename))
+    const usePnpm = pnpmInstalled && !npmPackageLockExists
+    if (pnpmInstalled && npmPackageLockExists) {
+      log(`- pnpm was found but '${npmPackageLockFilename}' exists, which means npm is probably already in use - continuing with npm instead of pnpm`)
     } else {
-      log('- pnpm not found - using npm')
+      log(pnpmInstalled ? '- pnpm found - using pnpm instead of npm' : '- pnpm not found - continuing with npm')
     }
-    const packageLockPath = path.resolve(this.workingDir, 'package-lock.json')
-    const packageLockExists = fs.existsSync(packageLockPath)
-    const npmCommand = pnpmInstalled && !packageLockExists ? 'pnpm' : 'npm'
-    await spawnAsync(npmCommand, ['i', '-D', 'swig-cli@latest', 'swig-cli-modules@latest', 'tsx@latest', 'typescript@latest', '@mikeyt23/node-cli-utils@latest', '@types/node@20'], { cwd: this.workingDir })
+    const npmSpawnArgs = [
+      'i',
+      '-D',
+      'swig-cli@latest',
+      'swig-cli-modules@latest',
+      'tsx@latest',
+      'typescript@latest',
+      '@mikeyt23/node-cli-utils@latest',
+      `@types/node@${this.nodeMajorVersion || SwigInitializer.minNodeVersion}`
+    ]
+    if (usePnpm) {
+      await this.npmSetPackageJsonPnpmEsbuildAllow()
+      log('- running pnpm install')
+      await spawnAsync('pnpm', npmSpawnArgs, { cwd: this.workingDir })
+    } else {
+      log('- running npm install')
+      await this.spawnNpm(npmSpawnArgs)
+    }
   }
 
   ensureSwigfile = async () => {
@@ -111,22 +126,58 @@ export class SwigInitializer {
   }
 
   printInstructions = () => {
-    log(`${Emoji.GreenCheck} Swig project setup complete. Next steps:`)
-    log(`- Install swig-cli globally: npm i -g swig-cli`)
-    log(`- Get a list of available swig tasks: swig`)
-    log(`- Run the "hello" task (only generated if swigfile.ts did not already exist): swig hello`)
+    log(`\n${Emoji.GreenCheck} Swig project setup complete. Next steps:`)
+    log(`- Optionally, install swig-cli globally with npm: "npm i -g swig-cli@latest" or pnpm: "pnpm i -g swig-cli@latest"`)
+    log(`- Get a list of available swig tasks by running from project directory:`)
+    log(`  - With global install: swig`)
+    log(`  - With local install and npm: npm exec swig`)
+    log(`  - With local install and pnpm: pnpm exec swig`)
+    log(`- Try it out by running the "hello" task (only generated if swigfile.ts did not already exist):`)
+    log(`  - With global install: swig hello`)
+    log(`  - With local install and npm: npm exec swig hello`)
+    log(`  - With local install and pnpm: pnpm exec swig hello`)
+    log(`- Starting adding new swig tasks by creating exported async function in swigfile.ts`)
+  }
+
+  private spawnNpm = async (npmSpawnArgs: string[]) => {
+    await spawnAsync(process.execPath, [this.npmCliJsPath!, ...npmSpawnArgs], { cwd: this.workingDir })
   }
 
   private isPnpmInstalledGlobally = async () => {
-    log('- checking if pnpm is installed globally')
     const result = await simpleSpawnAsync('pnpm', ['--version'], { throwOnNonZero: false })
     return result.code === 0 && result.stdout.trim() !== ''
   }
 }
 
+// Simply spawning "npm" results in "Error: Command or path not found: npm". Changing it to "npm.cmd" results
+// in error "Error: spawn EINVAL" without shell option, but adding shell option causes warning about spawning
+// cmd being deprecated. Options are to use this node-cli.js path (i.e. "node.exe [node-path]/node_modules/npm/bin/npm-cli.js [rest of npm commands here]")
+// OR to detect if windows and use npm.ps1, though there may be other gotchas with that approach. The advantage of using
+// npm-cli.js is that it doesn't require anything in the path and automatically uses the appropriate version of npm that
+// is packaged with the current executing version of nodejs.
+export function getNpmCliJsPath(): string | undefined {
+  const nodeDir = dirname(process.execPath)
+  const potentialRelativePaths = [
+    './node_modules/npm/bin/npm-cli.js',
+    '../node_modules/npm/bin/npm-cli.js',
+    '../lib/node_modules/npm/bin/npm-cli.js'
+  ]
+
+  for (const p of potentialRelativePaths) {
+    const fullPath = path.join(nodeDir, p)
+    if (existsSync(fullPath)) {
+      return fullPath
+    }
+  }
+
+  return undefined
+}
+
 export function getNodeMajorVersion(): number {
   const nodeVersionString = process.versions.node
-  return parseInt(nodeVersionString.substring(1, nodeVersionString.indexOf('.')))
+  const startIndex = nodeVersionString.length > 0 && nodeVersionString[0].toLowerCase() === 'v' ? 1 : 0
+  const version = parseInt(nodeVersionString.substring(startIndex, nodeVersionString.indexOf('.')))
+  return version
 }
 
 const tsconfigContent = `{
