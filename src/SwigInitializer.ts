@@ -194,7 +194,6 @@ const tsconfigContent = `{
       "node"
     ],
     "noEmit": true,
-    "baseUrl": ".",
     "rootDir": "."
   },
   "include": [

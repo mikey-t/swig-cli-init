@@ -1,6 +1,6 @@
 {
   "name": "swig-cli-init",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "author": "Mike Thompson",
   "repository": {
     "type": "git",
@@ -26,7 +26,7 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^10.30.3",
+      "version": "^10.33.0",
       "onFail": "ignore"
     },
     "runtime": {
